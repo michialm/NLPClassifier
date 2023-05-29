@@ -1,0 +1,162 @@
+---
+title: "NLP Classifier EDA"
+output: html_notebook
+---
+
+```{r}
+#Read in required R Libraries
+library(plotly)
+library(tidyr)
+library(readr)
+library(tidytext)
+library(dplyr)
+```
+
+```{r}
+#Read in Dataframes that contain project observations
+Titles_Eng <- read_csv('Titles_English.csv')
+All_Titles <- read_csv('All_Titles.csv')
+```
+
+```{r}
+#Review Datasets and Return for Cleaning Audits
+summary(Titles_Eng)
+summary(All_Titles)
+```
+
+```{r}
+#Remove first Index columns from Saved Dataframes from NLP Data Read in and Cleanup
+Titles_Eng <- Titles_Eng[, -1]
+All_Titles <- All_Titles[, -1]
+```
+
+```{r}
+#Ensure proper datatypes in the columns for remaining procedure
+Titles_Eng$EAN <- as.character(Titles_Eng$EAN)
+Titles_Eng$Category <- as.character(Titles_Eng$Category)
+All_Titles$EAN <- as.character(All_Titles$EAN)
+All_Titles$Category <- as.character(All_Titles$Category)
+```
+
+```{r}
+#Provide Data Visualizations Grouped by Category & MJR BISAC Codes for Further Exploration of Categorization profiles
+Titles_Category <- Titles_Eng %>% 
+  group_by(`MJR BISAC`, Category) %>% 
+  summarise(Title_Count = length(EAN)) %>% 
+  arrange(desc(Title_Count))
+
+Titles_Category
+```
+
+
+```{r}
+custom_colors <- c('#89B6A5', '#4C3B4D')
+
+Titles_Category$Category <- as.factor(Titles_Category$Category)
+
+category_order <- Titles_Category %>%
+  group_by(`MJR BISAC`) %>%
+  summarise(total = sum(Title_Count)) %>%
+  arrange(desc(total)) %>%
+  `$`(`MJR BISAC`)
+
+p <- Titles_Category %>%
+  plot_ly(x = ~`MJR BISAC`, 
+          y = ~Title_Count, 
+          type = 'bar',
+          color = ~Category, 
+          colors = custom_colors) %>%
+  layout(yaxis = list(title = 'Title Count'),
+         xaxis = list(title = 'MJR BISAC',
+                      categoryorder = "array",
+                      categoryarray = category_order),
+         title = "MJR BISAC by EAN Count",
+         legend = list(title = list(text = 'Flagged')))
+
+# Print the chart
+p
+```
+
+```{r}
+Flagged_Counts <- Titles_Eng %>% 
+  group_by(Category) %>% 
+  summarise(Title_Count = length(EAN)) %>% 
+  arrange(desc(Title_Count))
+
+b <- Flagged_Counts %>% 
+plot_ly(y = ~Title_Count,
+        x = ~Category,
+        type = 'bar',
+        color = ~Category,
+        colors = custom_colors) %>% 
+  layout(yaxis = list(title = 'Title Count'),
+         xaxis = list(title = 'Flagged Y/N'),
+         title = 'Count of EANs by Flag',
+         legend = list(title = list(text = 'Flagged')))
+
+b
+```
+
+```{r}
+Lang_Counts <- All_Titles %>% 
+  group_by(language_detected) %>% 
+  summarise(Title_Count = length(EAN)) %>% 
+  arrange(desc(Title_Count))
+
+Lang_Counts$language_detected <- as.factor(Lang_Counts$language_detected)
+
+lang_order <- Lang_Counts %>%
+  group_by(language_detected) %>%
+  summarise(total = sum(Title_Count)) %>%
+  arrange(desc(total)) %>%
+  `$`(language_detected)
+
+d <- Lang_Counts %>% 
+plot_ly(y = ~Title_Count,
+        x = ~language_detected,
+        type = 'bar',
+        color = ~language_detected) %>% 
+  layout(yaxis = list(title = 'Title Count'),
+         xaxis = list(title = 'Language',
+                      categoryorder = "array",
+                      categoryarray = lang_order),
+         title = 'Languages Represented in the Dataset')
+
+d
+```
+
+
+```{r}
+#Tokenize the 'Annotation Text' column of the 'Titles' dataset
+tokenized_annotation <- Titles_Eng %>% 
+  unnest_tokens(word, 'Annotation Text')
+
+head(tokenized_annotation)
+```
+
+```{r}
+# Get Sentiments & Word Counts
+Sentiment_Scores <- tokenized_annotation %>%
+  inner_join(get_sentiments("bing")) %>% 
+  group_by(EAN) %>% 
+  mutate(sentiment = ifelse(sentiment == "positive", 1, -1))
+
+#Now Get Sentiment Scores by summing 'positive' and 'negative' sentiment values
+Sentiment_Scores %>% 
+  group_by(EAN) %>% 
+  mutate(sentiment_score = sum(sentiment))
+
+# Keep only distinct records
+distinct_sentiment_scores <- net_sentiment_scores %>%
+  distinct(EAN, .keep_all = TRUE)
+```
+
+```{r}
+distinct_sentiment_scores
+```
+
+
+
+
+
+
