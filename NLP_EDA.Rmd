@@ -135,24 +135,31 @@ head(tokenized_annotation)
 ```
 
 ```{r}
-# Get Sentiments & Word Counts
+# Get Sentiments & Sentiment Scores
 Sentiment_Scores <- tokenized_annotation %>%
   inner_join(get_sentiments("bing")) %>% 
   group_by(EAN) %>% 
-  mutate(sentiment = ifelse(sentiment == "positive", 1, -1))
+  mutate(sentiment = ifelse(sentiment == "positive", 1, -1),
+         sentiment_score = sum(sentiment))
 
-#Now Get Sentiment Scores by summing 'positive' and 'negative' sentiment values
-Sentiment_Scores %>% 
+# Identify 'Majority Positive'/'Majority Negative' Titles and Plot the New Groupings
+Sentiment_Scores <- Sentiment_Scores %>% 
+  select(EAN, `MJR BISAC`, Category, sentiment_score) %>% 
   group_by(EAN) %>% 
-  mutate(sentiment_score = sum(sentiment))
+  distinct(EAN, .keep_all = TRUE) %>% 
+  as.data.frame()
 
-# Keep only distinct records
-distinct_sentiment_scores <- net_sentiment_scores %>%
-  distinct(EAN, .keep_all = TRUE)
+
+
+Sentiment_Scores %>% 
+  mutate(Sentiment_Majority = case_when(
+    sentiment_score < 0 ~ "Neg",
+    sentiment_score = 0 ~ "Balanced",
+    sentiment_score > 0 ~ "Pos"))
 ```
 
 ```{r}
-distinct_sentiment_scores
+Sentiment_Scores
 ```
 
 
