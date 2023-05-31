@@ -16,6 +16,7 @@ library(dplyr)
 #Read in Dataframes that contain project observations
 Titles_Eng <- read_csv('Titles_English.csv')
 All_Titles <- read_csv('All_Titles.csv')
+Results <- read_csv('Model_2.csv')
 ```
 
 ```{r}
@@ -28,6 +29,7 @@ summary(All_Titles)
 #Remove first Index columns from Saved Dataframes from NLP Data Read in and Cleanup
 Titles_Eng <- Titles_Eng[, -1]
 All_Titles <- All_Titles[, -1]
+Results <- Results[, -1]
 ```
 
 ```{r}
@@ -36,6 +38,8 @@ Titles_Eng$EAN <- as.character(Titles_Eng$EAN)
 Titles_Eng$Category <- as.character(Titles_Eng$Category)
 All_Titles$EAN <- as.character(All_Titles$EAN)
 All_Titles$Category <- as.character(All_Titles$Category)
+Results$EAN <- as.character(Results$EAN)
+Results$`Predicted Category` <- as.character(Results$`Predicted Category`)
 ```
 
 ```{r}
@@ -148,21 +152,21 @@ Sentiment_Scores <- Sentiment_Scores %>%
   group_by(EAN) %>% 
   distinct(EAN, .keep_all = TRUE) %>% 
   as.data.frame()
-
-
-
-Sentiment_Scores %>% 
-  mutate(Sentiment_Majority = case_when(
-    sentiment_score < 0 ~ "Neg",
-    sentiment_score = 0 ~ "Balanced",
-    sentiment_score > 0 ~ "Pos"))
 ```
 
 ```{r}
 Sentiment_Scores
 ```
 
+```{r}
+summary(Results)
+```
 
+```{r}
+Mid_Confidence <- Results %>% 
+  filter(`Confidence Score` >= .85) %>% 
+  arrange(desc(`Confidence Score`))
+```
 
 
 
