@@ -1,0 +1,106 @@
+---
+title: "NLP Classifier -- Relabeling Changes Tracked"
+author: "Michial Miller"
+date: "2023-06-07"
+output: html_document
+---
+#Identify 'Flipped' EANs -- consolidate into single pivoted dataframe with a column that identifies the relabeling phase of the flip
+```{r}
+#Read in required R Libraries
+library(plotly)
+library(tidyr)
+library(readr)
+library(tidytext)
+library(dplyr)
+library(htmlwidgets)
+library(viridis)
+```
+
+```{r}
+#Read in Relabeling Datasets
+Titles_Eng <- read_csv('Titles_English.csv')
+Titles_Eng_Relabeled <- read_csv('Titles_English_Relabeled.csv')
+Titles_Eng_Relabeled_2 <- read_csv('Titles_English_Relabeled_2.csv')
+Titles_Eng_Relabeled_3 <- read_csv('Titles_English_Relabeled_3_Touched.csv')
+```
+
+```{r}
+#Review Data Summaries
+summary(Titles_Eng)
+
+summary(Titles_Eng_Relabeled)
+
+summary(Titles_Eng_Relabeled_2)
+
+summary(Titles_Eng_Relabeled_3)
+```
+
+```{r}
+#Remove first Index columns from Saved Dataframes from NLP Data Read in and Cleanup
+Titles_Eng <- Titles_Eng[, -1]
+Titles_Eng_Relabeled <- Titles_Eng_Relabeled[, -1]
+Titles_Eng_Relabeled_2 <- Titles_Eng_Relabeled_2[, -1]
+Titles_Eng_Relabeled_3 <- Titles_Eng_Relabeled_3[, -1]
+```
+
+```{r}
+#Change Datatypes According to Project Needs
+Titles_Eng$EAN <- as.character(Titles_Eng$EAN)
+Titles_Eng$Category <- as.character(Titles_Eng$Category)
+Titles_Eng_Relabeled$EAN <- as.character(Titles_Eng_Relabeled$EAN)
+Titles_Eng_Relabeled$Category <- as.character(Titles_Eng_Relabeled$Category)
+Titles_Eng_Relabeled_2$EAN <- as.character(Titles_Eng_Relabeled_2$EAN)
+Titles_Eng_Relabeled_2$Category <- as.character(Titles_Eng_Relabeled_2$Category)
+Titles_Eng_Relabeled_3$EAN <- as.character(Titles_Eng_Relabeled_3$EAN)
+Titles_Eng_Relabeled_3$Category <- as.character(Titles_Eng_Relabeled_3$Category)
+```
+
+```{r}
+Relabeled_1 <- Titles_Eng_Relabeled[, c('EAN', 'Category')] %>% 
+  rename(Category_Relabeled_1 = Category)
+Relabeled_2 <- Titles_Eng_Relabeled_2[, c('EAN', 'Category')] %>% 
+  rename(Category_Relabeled_2 = Category)
+Relabeled_3 <- Titles_Eng_Relabeled_3[, c('EAN', 'Category')] %>% 
+  rename(Category_Relabeled_3 = Category)
+```
+
+
+```{r}
+# Merge the relabeled datasets with Titles_Eng
+Titles_Eng <- merge(Titles_Eng, Relabeled_1, by = "EAN", all.x = TRUE)
+Titles_Eng <- merge(Titles_Eng, Relabeled_2, by = "EAN", all.x = TRUE)
+Titles_Eng <- merge(Titles_Eng, Relabeled_3, by = "EAN", all.x = TRUE)
+
+# Print the merged dataframe
+print(Titles_Eng)
+```
+
+```{r}
+# Add Change_1 column
+Titles_Eng$Change_1 <- ifelse(Titles_Eng$Category_Relabeled_1 == Titles_Eng$Category, "True", "False")
+
+# Add Change_2 column
+Titles_Eng$Change_2 <- ifelse(Titles_Eng$Category_Relabeled_2 == Titles_Eng$Category_Relabeled_1, "True", "False")
+
+# Add Change_3 column
+Titles_Eng$Change_3 <- ifelse(Titles_Eng$Category_Relabeled_3 == Titles_Eng$Category_Relabeled_2, "True", "False")
+
+# Print the updated dataframe
+print(Titles_Eng)
+```
+
+```{r}
+# Filter EANs with 'False' in any of the Change columns
+filtered_df <- Titles_Eng %>%
+  filter(Change_1 == "False" | Change_2 == "False" | Change_3 == "False")
+
+# Print the filtered dataframe
+print(filtered_df)
+```
+
+```{r}
+write_csv(filtered_df, 'flipped_titles.csv')
+```
+
+
+
