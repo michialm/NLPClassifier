@@ -4,6 +4,7 @@
 
 As retailers/consumer demand increases for the availability of content in granularity, the ability to query existing content to meet that level of granularity must scale to survive. 
 While expert content review and classification exists, today, there is a business need for increasing submission-based review processes, while maintaining the nuance of profile curation. 
+
 Heuristic expertise is a necessary element in the process of catalog curation to make adjustments as profiles change and evolve over time and that marketable content is not being systematically rejected based on outdated/biased profile assumptions.  
 
 Using machine learning tools, statistical processes, and the necessary element of iterative human experience, this workflow model provides a prototype for increasing the scalability of content submission workflows to employ machine learning models to predict a binary, ‘inclusion’ categorization (‘Flagged’/’Unflagged’), based on a historical dataset of hand-classified products by these same curators. 
