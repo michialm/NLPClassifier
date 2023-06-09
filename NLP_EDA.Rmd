@@ -1,0 +1,334 @@
+---
+title: "NLP Classifier EDA"
+output: html_notebook
+---
+
+```{r}
+#Read in required R Libraries
+library(plotly)
+library(tidyr)
+library(readr)
+library(tidytext)
+library(dplyr)
+library(htmlwidgets)
+library(viridis)
+```
+
+```{r}
+#Read in Dataframes that contain project observations
+Titles_Eng <- read_csv('Titles_English.csv')
+All_Titles <- read_csv('All_Titles.csv')
+Results <- read_csv('Model_2.csv')
+Results_2 <- read_csv('Model_3.csv')
+Titles_Eng_Relabeled_3 <- read_csv('Titles_English_Relabeled_3.csv')
+```
+
+```{r}
+#Review Datasets and Return for Cleaning Audits
+summary(Titles_Eng)
+summary(All_Titles)
+summary(Results_2)
+summary(Titles_Eng_Relabeled_3)
+```
+
+```{r}
+#Remove first Index columns from Saved Dataframes from NLP Data Read in and Cleanup
+Titles_Eng <- Titles_Eng[, -1]
+All_Titles <- All_Titles[, -1]
+Results <- Results[, -1]
+Results_2 <- Results_2[, -1]
+Titles_Eng_Relabeled_3[, -1]
+```
+
+```{r}
+#Ensure proper datatypes in the columns for remaining procedure
+Titles_Eng$EAN <- as.character(Titles_Eng$EAN)
+Titles_Eng$Category <- as.character(Titles_Eng$Category)
+All_Titles$EAN <- as.character(All_Titles$EAN)
+All_Titles$Category <- as.character(All_Titles$Category)
+Results$EAN <- as.character(Results$EAN)
+Results$`Predicted Category` <- as.character(Results$`Predicted Category`)
+Results_2$EAN <- as.character(Results_2$EAN)
+Results_2$`Predicted Category` <- as.character(Results_2$`Predicted Category`)
+Titles_Eng_Relabeled_3$EAN <- as.character(Titles_Eng_Relabeled_3$EAN)
+Titles_Eng_Relabeled_3$Category <- as.character(Titles_Eng_Relabeled_3$Category)
+```
+
+```{r}
+#Provide Data Visualizations Grouped by Category & MJR BISAC Codes for Further Exploration of Categorization profiles
+Titles_Category <- Titles_Eng %>% 
+  group_by(`MJR BISAC`, Category) %>% 
+  summarise(Title_Count = length(EAN)) %>% 
+  arrange(desc(Title_Count))
+
+Titles_Category
+```
+
+```{r}
+#Provide Data Visualizations Grouped by Category & MJR BISAC Codes for Further Exploration of Categorization profiles in the Relabeled Dataset
+Titles_Eng_Relabeled_3_Category <- Titles_Eng_Relabeled_3 %>% 
+  group_by(`MJR BISAC`, Category) %>% 
+  summarise(Title_Count = length(EAN)) %>% 
+  arrange(desc(Title_Count))
+
+Titles_Eng_Relabeled_3_Category
+```
+
+```{r}
+custom_colors <- c('#89B6A5', '#4C3B4D')
+
+Titles_Category$Category <- as.factor(Titles_Category$Category)
+
+category_order <- Titles_Category %>%
+  group_by(`MJR BISAC`) %>%
+  summarise(total = sum(Title_Count)) %>%
+  arrange(desc(total)) %>%
+  `$`(`MJR BISAC`)
+
+p <- Titles_Category %>%
+  plot_ly(x = ~`MJR BISAC`, 
+          y = ~Title_Count, 
+          type = 'bar',
+          color = ~Category, 
+          colors = custom_colors) %>%
+  layout(yaxis = list(title = 'Title Count'),
+         xaxis = list(title = 'MJR BISAC',
+                      categoryorder = "array",
+                      categoryarray = category_order),
+         title = "MJR BISAC by EAN Count",
+         legend = list(title = list(text = 'Flagged')))
+
+#Save the Plot in HTML for Presentation
+saveWidget(p, "MJR_BISAC_by_EAN_Count.html")
+
+# Print the chart
+p
+```
+
+```{r}
+Titles_Eng_Relabeled_3_Category$Category <- as.factor(Titles_Eng_Relabeled_3_Category$Category)
+
+category_order <- Titles_Eng_Relabeled_3_Category %>%
+  group_by(`MJR BISAC`) %>%
+  summarise(total = sum(Title_Count)) %>%
+  arrange(desc(total)) %>%
+  `$`(`MJR BISAC`)
+
+e <- Titles_Eng_Relabeled_3_Category %>%
+  plot_ly(x = ~`MJR BISAC`, 
+          y = ~Title_Count, 
+          type = 'bar',
+          color = ~Category, 
+          colors = custom_colors) %>%
+  layout(yaxis = list(title = 'Title Count'),
+         xaxis = list(title = 'MJR BISAC',
+                      categoryorder = "array",
+                      categoryarray = category_order),
+         title = "MJR BISAC by EAN Count",
+         legend = list(title = list(text = 'Flagged')))
+
+#Save the Plot in HTML for Presentation
+saveWidget(e, "MJR_BISAC_by_EAN_Count_RELABELED.html")
+
+# Print the chart
+e
+```
+
+
+```{r}
+#Count and Visualize the Original Flags in the Dataset
+Flagged_Counts <- Titles_Eng %>% 
+  group_by(Category) %>% 
+  summarise(Title_Count = length(EAN)) %>% 
+  arrange(desc(Title_Count))
+
+b <- Flagged_Counts %>% 
+plot_ly(y = ~Title_Count,
+        x = ~Category,
+        type = 'bar',
+        color = ~Category,
+        colors = custom_colors) %>% 
+  layout(yaxis = list(title = 'Title Count'),
+         xaxis = list(title = 'Flagged Y/N'),
+         title = 'Count of EANs by Flag',
+         legend = list(title = list(text = 'Flagged')))
+
+#Save the Plot in HTML for Presentation
+saveWidget(b, "Count_of_EANs_by_Flag.html")
+
+#Show Plot
+b
+```
+
+```{r}
+#Count and Visualize Relabeled Flags in the Dataset after Final Relabeling Process
+Flagged_Counts_Relabeled <- Titles_Eng_Relabeled_3 %>% 
+  group_by(Category) %>% 
+  summarise(Title_Count = length(EAN)) %>% 
+  arrange(desc(Title_Count))
+
+g <- Flagged_Counts_Relabeled %>% 
+plot_ly(y = ~Title_Count,
+        x = ~Category,
+        type = 'bar',
+        color = ~Category,
+        colors = custom_colors) %>% 
+  layout(yaxis = list(title = 'Title Count'),
+         xaxis = list(title = 'Flagged Y/N'),
+         title = 'Count of EANs by Flag',
+         legend = list(title = list(text = 'Flagged')))
+
+#Save the Plot in HTML for Presentation
+saveWidget(g, "Count_of_EANs_by_Flag_RELABELED.html")
+
+g
+```
+
+
+```{r}
+Lang_Counts <- All_Titles %>%
+  filter(language_detected != 'None') %>% 
+  group_by(language_detected) %>% 
+  summarise(Title_Count = length(EAN)) %>% 
+  arrange(desc(Title_Count))
+
+Lang_Counts
+
+Lang_Counts$language_detected <- as.factor(Lang_Counts$language_detected)
+
+lang_order <- Lang_Counts %>%
+  group_by(language_detected) %>%
+  summarise(total = sum(Title_Count)) %>%
+  arrange(total) %>%
+  `$`(language_detected)
+
+d <- Lang_Counts %>% 
+  plot_ly(x = ~Title_Count,
+          y = ~language_detected,
+          type = 'bar',
+          orientation = 'h',
+          color = ~language_detected) %>% 
+  layout(xaxis = list(title = 'Title Count'),
+         yaxis = list(title = 'Language',
+                      categoryorder = "array",
+                      categoryarray = lang_order),
+         title = 'Languages Represented in the Dataset',
+         showlegend = FALSE)
+
+# Calculate the total count for each language
+totals <- Lang_Counts %>%
+  group_by(language_detected) %>%
+  summarise(total = sum(Title_Count)) %>%
+  arrange(total)
+
+# Create the pie chart
+pie_chart <- plot_ly(totals, 
+                     labels = ~language_detected, 
+                     values = ~total, 
+                     type = 'pie',
+                     textinfo = 'label+percent',
+                     insidetextorientation = 'radial'
+)
+
+# Add title to the chart
+pie_chart <- layout(pie_chart, title = 'Languages Represented in the Dataset')
+
+# Display the chart
+pie_chart
+
+#Save the Plot in HTML for Presentation
+saveWidget(treemap, "Languages_Represented_tree.html")
+
+totals <- Lang_Counts %>%
+  group_by(language_detected) %>%
+  summarise(total = sum(Title_Count)) %>%
+  arrange(total)
+
+# Normalize the values
+totals <- totals %>% mutate(normalized_total = total / sum(total))
+
+# Create the treemap
+treemap <- plot_ly(totals, 
+                   labels = ~language_detected, 
+                   parents = '', 
+                   values = ~normalized_total,
+                   type = 'treemap',
+                   branchvalues = 'total'
+)
+
+# Add title to the chart
+treemap <- layout(treemap, title = 'Normalized Languages Represented in the Dataset')
+
+# Display the chart
+treemap
+
+d
+```
+
+```{r}
+#Merge the original selections with the category predictions to explore the first results for potential relabeling
+merged_results <- Results %>%
+  mutate(Category = Titles_Eng$Category[match(EAN, Titles_Eng$EAN)])
+
+# View the merged results
+print(merged_results)
+
+merged_results <- merged_results %>% 
+  mutate(Miss = ifelse(Category == `Predicted Category`, TRUE, FALSE))
+
+# Save the Results to CSV
+write.csv(merged_results, 'merged_results.csv', row.names = FALSE)
+```
+
+```{r}
+#Merge the original selections with the category predictions to explore the second round of relabeling results
+merged_results_2 <- Results_2 %>%
+  mutate(Category = Titles_Eng$Category[match(EAN, Titles_Eng$EAN)],
+         Ingram_Category_Code = Titles_Eng$`Ingram Category Code`[match(EAN, Titles_Eng$EAN)])
+
+# View the merged results
+print(merged_results_2)
+
+merged_results_2 <- merged_results_2 %>% 
+  mutate(Miss = ifelse(Category == `Predicted Category`, TRUE, FALSE))
+
+# Save the Results to CSV
+write.csv(merged_results_2, 'merged_results_2.csv', row.names = FALSE)
+```
+
+```{r}
+#Create a dataset that contains the relabeled Categories and the Original Categories to determine the count of differences and additional items to explore
+Category_Changes <- Titles_Eng_Relabeled_3 %>% 
+  mutate(Original_Category = Titles_Eng$Category[match(EAN, Titles_Eng_Relabeled_3$EAN)])
+
+Category_Changes <- Category_Changes[, -1]
+
+Category_Changes
+```
+
+```{r}
+#Calculate the count of labeling changes
+count_diff <- sum(Category_Changes$Category != Category_Changes$Original_Category)
+
+count_diff
+```
+
+```{r}
+# Calculate count of differences by grouping
+count_diff_grouped <- Category_Changes %>%
+  group_by(`MJR BISAC`) %>%
+  summarise(count_diff = sum(Category != Original_Category)) %>% 
+  arrange(desc(count_diff))
+
+count_diff_grouped %>% 
+  ggplot(aes(x = reorder(`MJR BISAC`, -count_diff), y = count_diff)) +
+  geom_col(position = 'dodge', fill = '#89B6A5') +
+  labs(x = 'Week', 
+       y = 'Units') +
+  labs(title = "Flag Change Count by MJR BISAC") +
+  guides(x = guide_axis(angle = -90))+
+  scale_fill_viridis(discrete = TRUE) +
+  theme_gray(base_size = 12)
+```
+
+
